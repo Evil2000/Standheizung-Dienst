@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Auxiliary heating service</string>
+    <string name="no_bt_adapter_fround">No bluetooth adapter was found!</string>
+    <string name="bt_not_connected">Error: Bluetooth device is not connected.</string>
+    <string name="bt_error_sending">Error transmitting to bluetooth device:</string>
+    <string name="bt_error_receiving">Error receiving from bluetooth device:</string>
+    <string name="ah_on">Auxiliary heating on.</string>
+    <string name="ah_off">Auxiliary heating off.</string>
+    <string name="remote_lern1_sent">Sent T93 remote learn key combination.</string>
+    <string name="remote_lern2_sent">Sent T95 remote learn key combination.</string>
+</resources>

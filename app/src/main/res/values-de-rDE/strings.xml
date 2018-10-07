@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Standheizung Dienst</string>
+    <string name="no_bt_adapter_fround">Kein Bluetooth Adapter gefunden!</string>
+    <string name="bt_not_connected">Fehler: BT Gerät ist nicht verbunden!</string>
+    <string name="bt_error_sending">Fehler beim Senden zum BT Gerät:</string>
+    <string name="ah_on">Standheizung ein.</string>
+    <string name="ah_off">Standheizung aus.</string>
+    <string name="remote_lern1_sent">T93 Fernb. Anlerncode gesendet.</string>
+    <string name="remote_lern2_sent">T95 Fernb. Anlernvode gesendet.</string>
+    <string name="bt_error_receiving">Fehler beim lesen von BT Gerät:</string>
+</resources>
