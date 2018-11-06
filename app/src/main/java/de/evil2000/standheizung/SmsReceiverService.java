@@ -31,9 +31,9 @@ import java.util.UUID;
 public class SmsReceiverService extends Service {
     private SMSReceiver smsBroadcastReceiver;
     private SharedPreferences settings;
-    private BluetoothSocket rfcommSocket;
-    private InputStream btIn;
-    private OutputStream btOut;
+    private BluetoothSocket rfcommSocket = null;
+    private InputStream btIn = null;
+    private OutputStream btOut = null;
 
     /**
      * Service is created. Start a thread which infinitely tries to reconnect to the bluetooth
@@ -99,9 +99,12 @@ public class SmsReceiverService extends Service {
 
         // Close all bluetooth rfcomm sockets and streams.
         try {
-            btIn.close();
-            btOut.close();
-            rfcommSocket.close();
+            if (btIn != null)
+                btIn.close();
+            if(btOut != null)
+                btOut.close();
+            if(rfcommSocket != null)
+                rfcommSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

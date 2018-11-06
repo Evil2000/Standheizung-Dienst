@@ -1,13 +1,17 @@
 package de.evil2000.standheizung;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.telephony.PhoneNumberFormattingTextWatcher;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -29,7 +33,13 @@ public class Standheizung extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_standheizung);
-        startService(new Intent(this,SmsReceiverService.class));
+
+        TelephonyManager telMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (telMgr.getSimState() == TelephonyManager.SIM_STATE_ABSENT || Build.DEVICE.equals("generic_x86_64")) {
+            startService(new Intent(this,MqttRecieverService.class));
+        } else {
+            startService(new Intent(this,SmsReceiverService.class));
+        }
     }
 
     @Override
