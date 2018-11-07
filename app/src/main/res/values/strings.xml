@@ -8,4 +8,10 @@
     <string name="ah_off">Auxiliary heating off.</string>
     <string name="remote_lern1_sent">Sent T93 remote learn key combination.</string>
     <string name="remote_lern2_sent">Sent T95 remote learn key combination.</string>
+    <string name="cmd_not_supported">Command is not supported.</string>
+    <string name="select_bt_device">Select Bluetooth device:</string>
+    <string name="use_mqtt_transport">Use MQTT transport</string>
+    <string name="trusted_sms_number">Trusted SMS number:</string>
+    <string name="mqtt_broker_uri">MQTT broker URI:</string>
+    <string name="save">Save.</string>
 </resources>

@@ -1,6 +1,5 @@
 package de.evil2000.standheizung;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -10,6 +9,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelUuid;
+import android.support.v4.content.ContextCompat;
 import android.telephony.PhoneNumberFormattingTextWatcher;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -19,8 +19,10 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import java.util.Set;
@@ -28,17 +30,22 @@ import java.util.Set;
 public class Standheizung extends Activity {
     public static String publicRfcommUuid = "00001101-0000-1000-8000-00805f9b34fb";
     private SharedPreferences settings;
+    private boolean simCardPresent = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_standheizung);
 
+        settings = getSharedPreferences(Hlpr.PREFS_NAME, MODE_PRIVATE);
         TelephonyManager telMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        if (telMgr.getSimState() == TelephonyManager.SIM_STATE_ABSENT || Build.DEVICE.equals("generic_x86_64")) {
-            startService(new Intent(this,MqttRecieverService.class));
+
+        simCardPresent = (telMgr.getSimState() == TelephonyManager.SIM_STATE_ABSENT || Build.DEVICE.equals("generic_x86_64"));
+        // TODO: Remove Build.DEVICE check.
+        if (settings.getBoolean("useMqttTransport",!simCardPresent)) {
+            startService(new Intent(this, MqttRecieverService.class));
         } else {
-            startService(new Intent(this,SmsReceiverService.class));
+            startService(new Intent(this, SmsReceiverService.class));
         }
     }
 
@@ -62,7 +69,8 @@ public class Standheizung extends Activity {
         txtTrustedSmsNumber.setOnFocusChangeListener(new TextView.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) return;
+                if (hasFocus)
+                    return;
                 TextView view = (TextView) v;
                 Log.d("onFocusChange", view.getText().toString());
                 settings.edit().putString("smsAuthSender", view.getText().toString()).apply();
@@ -84,6 +92,53 @@ public class Standheizung extends Activity {
             }
         });
 
+        final Switch swtchUseMqttTransport = (Switch) findViewById(R.id.swtchUseMqttTransport);
+        swtchUseMqttTransport.setChecked(settings.getBoolean("useMqttTransport", false));
+        swtchUseMqttTransport.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
+                Log.d("onFocusChange", "swtchUseMqttTransport=" + checked);
+                settings.edit().putBoolean("useMqttTransport", checked).apply();
+            }
+        });
+
+        final EditText txtBrokerUri = (EditText) findViewById(R.id.txtMqttBrokerUri);
+        txtBrokerUri.setText(settings.getString("mqttBrokerUri", ""));
+        txtBrokerUri.setOnFocusChangeListener(new TextView.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus)
+                    return;
+                TextView view = (TextView) v;
+                Log.d("onFocusChange", "txtBrokerUri=" + view.getText().toString());
+                settings.edit().putString("mqttBrokerUri", view.getText().toString()).apply();
+            }
+        });
+        txtBrokerUri.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                        actionId == EditorInfo.IME_ACTION_DONE ||
+                        event.getAction() == KeyEvent.ACTION_DOWN &&
+                                event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                    // the user is done typing.
+                    Log.d("onFocusChange", "txtBrokerUri=" + view.getText().toString());
+                    settings.edit().putString("mqttBrokerUri", view.getText().toString()).apply();
+                    return true; // consume.
+                }
+                return false;
+            }
+        });
+
+        if (!simCardPresent) {
+            // If no SIM present, force use of MQTT.
+            swtchUseMqttTransport.setChecked(true);
+            swtchUseMqttTransport.setEnabled(false);
+            txtTrustedSmsNumber.setEnabled(false);
+            txtTrustedSmsNumber.setText("");
+            txtTrustedSmsNumber.setHint("No SIM card present!");
+        }
+
         // Treat the "Done" button. It closes the activity.
         Button btnDone = (Button) findViewById(R.id.btnDone);
         btnDone.setOnClickListener(new View.OnClickListener() {
@@ -93,6 +148,29 @@ public class Standheizung extends Activity {
                 // triggered
                 view.requestFocus();
                 view.requestFocusFromTouch();
+
+                Intent MqttRecieverService = new Intent(getApplicationContext(), MqttRecieverService.class);
+                Intent SmsReceiverService = new Intent(getApplicationContext(), SmsReceiverService.class);
+                stopService(SmsReceiverService);
+                stopService(MqttRecieverService);
+
+                if (settings.getBoolean("useMqttTransport", false)) {
+                    if (settings.getString("mqttBrokerUri", "").isEmpty()) {
+                        // TODO: Display error message
+                        txtBrokerUri.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),android.R.color
+                                .holo_orange_light));
+                        return;
+                    }
+                    startService(MqttRecieverService);
+                } else {
+                    if (settings.getString("smsAuthSender", "").isEmpty()) {
+                        // TODO: Display error message
+                        txtTrustedSmsNumber.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),android.R.color
+                                .holo_orange_light));
+                        return;
+                    }
+                    startService(SmsReceiverService);
+                }
                 Standheizung.this.finish();
             }
         });
@@ -144,13 +222,15 @@ public class Standheizung extends Activity {
             // Renew the UUIDs by using SDP (maybe not necessary)
             btDevice.fetchUuidsWithSdp();
             // Some BT devices have no registered services
-            if (btDevice.getUuids() == null) continue;
+            if (btDevice.getUuids() == null)
+                continue;
             for (ParcelUuid pUuid : btDevice.getUuids()) {
                 Log.d(Hlpr.__FUNC__(getClass()),
                         "btDevice: " + btDevice.getName() + " [" + btDevice.getAddress() + "] : " +
                                 pUuid.toString());
                 // Only list devices which have rfcomm capability
-                if (!pUuid.toString().equals(publicRfcommUuid)) continue;
+                if (!pUuid.toString().equals(publicRfcommUuid))
+                    continue;
                 // Create the btItem and add it to the dropdown list.
                 btItem itm = new btItem();
                 itm.name = btDevice.getName();

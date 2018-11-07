@@ -7,6 +7,12 @@
     <string name="ah_on">Standheizung ein.</string>
     <string name="ah_off">Standheizung aus.</string>
     <string name="remote_lern1_sent">T93 Fernb. Anlerncode gesendet.</string>
-    <string name="remote_lern2_sent">T95 Fernb. Anlernvode gesendet.</string>
+    <string name="remote_lern2_sent">T95 Fernb. Anlerncode gesendet.</string>
     <string name="bt_error_receiving">Fehler beim lesen von BT Gerät:</string>
+    <string name="cmd_not_supported">Kommando nicht unterstützt.</string>
+    <string name="select_bt_device">Bluethoothgerät wählen:</string>
+    <string name="use_mqtt_transport">MQTT verwenden</string>
+    <string name="trusted_sms_number">Vertraute SMS Nummer:</string>
+    <string name="mqtt_broker_uri">MQTT Broker URI:</string>
+    <string name="save">Speichern.</string>
 </resources>

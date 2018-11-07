@@ -1,5 +1,6 @@
 package de.evil2000.standheizung;
 
+import android.app.Notification;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.telephony.PhoneNumberUtils;
@@ -34,6 +36,7 @@ public class SmsReceiverService extends Service {
     private BluetoothSocket rfcommSocket = null;
     private InputStream btIn = null;
     private OutputStream btOut = null;
+    private Timer btConnectTimer = null;
 
     /**
      * Service is created. Start a thread which infinitely tries to reconnect to the bluetooth
@@ -44,10 +47,16 @@ public class SmsReceiverService extends Service {
     public void onCreate() {
         super.onCreate();
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForeground(1,new Notification());
+        }
+
+        settings = getSharedPreferences(Hlpr.PREFS_NAME, Context.MODE_PRIVATE);
+
         // Run a thread which tries every 10 seconds to connect to btDevice forever. Keep in mind
         // that a connection timeout may occur after 5 to 7 seconds which is independent from timer.
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
+        btConnectTimer = new Timer();
+        btConnectTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 connectWithBtDevice();
@@ -82,8 +91,13 @@ public class SmsReceiverService extends Service {
                 intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED"))
             handleSms(intent);
 
-        // Tell android not to kill our service (please!).
-        return START_STICKY;
+        if (!settings.getBoolean("useMqttTransport",false)) {
+            // Tell android not to kill our service (please!).
+            return START_STICKY;
+        } else {
+            stopSelf();
+        }
+        return START_NOT_STICKY;
     }
 
     /**
@@ -97,6 +111,9 @@ public class SmsReceiverService extends Service {
         // Otherwise the service will not be restarted on reception of a SMS.
         unregisterReceiver(smsBroadcastReceiver);
 
+        if(btConnectTimer != null)
+            btConnectTimer.cancel();
+
         // Close all bluetooth rfcomm sockets and streams.
         try {
             if (btIn != null)
@@ -109,8 +126,11 @@ public class SmsReceiverService extends Service {
             e.printStackTrace();
         }
 
-        // But to be sure our service is restarted after a kill, send a restart broadcast
-        sendBroadcast(new Intent("de.evil2000.standheizung.RestartService"));
+        settings = getSharedPreferences(Hlpr.PREFS_NAME, Context.MODE_PRIVATE);
+        if (!settings.getBoolean("useMqttTransport",false)) {
+            // But to be sure our service is restarted after a kill, send a restart broadcast
+            sendBroadcast(new Intent("de.evil2000.standheizung.RestartService"));
+        }
     }
 
     /**
@@ -265,7 +285,6 @@ public class SmsReceiverService extends Service {
     private boolean connectWithBtDevice() {
         if (rfcommSocket != null && rfcommSocket.isConnected()) return true;
 
-        settings = getSharedPreferences(Hlpr.PREFS_NAME, Context.MODE_PRIVATE);
         String btDeviceAddress = settings.getString("btDeviceAddress", "");
         String btServiceUuid = settings.getString("btServiceUuid", Standheizung.publicRfcommUuid);
 

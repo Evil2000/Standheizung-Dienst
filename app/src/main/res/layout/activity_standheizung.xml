@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,18 +9,23 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Select Bluetooth Device:"
+        android:text="@string/select_bt_device"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
-
     <Spinner
         android:id="@+id/drpdwnBluetoothDevice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-
+    <Switch
+        android:id="@+id/swtchUseMqttTransport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/use_mqtt_transport"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+    <!-- ///////////////////////////////////////////////////////////////// -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Trusted SMS Number:"
+        android:text="@string/trusted_sms_number"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
 
     <EditText
@@ -30,11 +34,23 @@
         android:layout_height="wrap_content"
         android:hint="+49 150 123456789"
         android:inputType="phone" />
-
+    <!-- ///////////////////////////////////////////////////////////////// -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mqtt_broker_uri"
+        android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large" />
+    <EditText
+        android:id="@+id/txtMqttBrokerUri"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="tcp://broker.hivemq.com:1883"
+        android:inputType="textUri" />
+    <!-- ///////////////////////////////////////////////////////////////// -->
     <Button
         android:id="@+id/btnDone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Done" />
+        android:text="@string/save" />
 
 </LinearLayout>
