@@ -18,6 +18,8 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -45,7 +47,7 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
         super.onCreate();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForeground(1,new Notification());
+            startForeground(1, new Notification());
         }
         // Run a thread which tries every 10 seconds to connect to btDevice forever. Keep in mind
         // that a connection timeout may occur after 5 to 7 seconds which is independent from timer.
@@ -55,31 +57,43 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
             public void run() {
                 connectWithBtDevice();
             }
-        }, 0, 10000);
-
-        settings = getSharedPreferences(Hlpr.PREFS_NAME, MODE_PRIVATE);
-        brokerURI = settings.getString("mqttBrokerUri", "");
-        if (brokerURI.isEmpty())
-            throw new IllegalStateException("No MQTT broker URI is set.");
-        mqttClient = new MqttAndroidClient(getApplicationContext(), brokerURI, getClientId());
-        mqttClient.setCallback(this);
+        }, 0, 60000);
     }
 
     @Override
     public int onStartCommand(final Intent intent, int flags, final int startId) {
         Log.i(Hlpr.__FUNC__(getClass()), "MqttRecieverService started with startId=" + startId + " flags=" + flags + " Intent: " + intent);
 
-        if (brokerURI.isEmpty())
-            throw new IllegalStateException("No MQTT broker URI is set.");
-        if (!isAlreadyConnected()) {
+        settings = getSharedPreferences(Hlpr.PREFS_NAME, MODE_PRIVATE);
+        brokerURI = settings.getString("mqttBrokerUri", "");
+
+        if (brokerURI.isEmpty()) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
+        Log.i(Hlpr.__FUNC__(getClass()), "isAlreadyConnected()=" + isAlreadyConnected());
+        if (!isAlreadyConnected() || !mqttClient.getServerURI().equals(brokerURI)) {
             try {
-                mqttClient.connect();
+                Log.i(Hlpr.__FUNC__(getClass()), "mqttClient="+(mqttClient != null ? "set" : "null"));
+                Log.i(Hlpr.__FUNC__(getClass()), "brokerURI=" + brokerURI);
+                if (mqttClient != null) {
+                    Log.i(Hlpr.__FUNC__(getClass()), "getServerURI()=" + mqttClient.getServerURI());
+                }
+                if (mqttClient != null)
+                    mqttClient.disconnect();
+
+                mqttClient = new MqttAndroidClient(getApplicationContext(), brokerURI, getClientId());
+                mqttClient.setCallback(this);
+                MqttConnectOptions c = new MqttConnectOptions();
+                c.setAutomaticReconnect(true);
+                mqttClient.connect(c);
             } catch (MqttException e) {
                 e.printStackTrace();
             }
         }
 
-        if (settings.getBoolean("useMqttTransport",false)) {
+        if (settings.getBoolean("useMqttTransport", false)) {
             // Tell android not to kill our service (please!).
             return START_STICKY;
         } else {
@@ -96,7 +110,7 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
     public void onDestroy() {
         super.onDestroy();
 
-        if(btConnectTimer != null)
+        if (btConnectTimer != null)
             btConnectTimer.cancel();
 
         // Close all bluetooth rfcomm sockets and streams.
@@ -116,7 +130,7 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
         }
 
         settings = getSharedPreferences(Hlpr.PREFS_NAME, Context.MODE_PRIVATE);
-        if (settings.getBoolean("useMqttTransport",false)) {
+        if (settings.getBoolean("useMqttTransport", false)) {
             // But to be sure our service is restarted after a kill, send a restart broadcast
             sendBroadcast(new Intent("de.evil2000.standheizung.RestartService"));
         }
@@ -136,7 +150,12 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
 
                     @Override
                     public void onFailure(IMqttToken iMqttToken, Throwable cause) {
-                        Log.d("IMqttActionListener", "Subscription failed. cause=" + cause.toString());
+                        Log.d("IMqttActionListener", "Subscription failed. cause=" + (cause != null ? cause.toString() : "null"));
+                        try {
+                            mqttClient.subscribe(topic_rx, 0);
+                        } catch (MqttException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
             } catch (MqttException e) {
@@ -212,74 +231,108 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
         // @formatter:on
 
         // Split the SMS message by space and treat the second argument as "command"
-        String command = message.toString();
+        String command;
+        try {
+            command = message.toString().split(" ")[0];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            command = message.toString();
+        }
+
+        String fromApp;
+        try {
+            fromApp = message.toString().split(" ")[1];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            fromApp = "";
+        }
 
         // Send the right open/close commands to btDevice if on/off/anlernenX is received.
         if (command.toLowerCase().equals("on")) {
-            if (!sendToBt(Hlpr.relayCh1Close)) return;
+            if (!sendToBt(Hlpr.relayCh1Close))
+                return;
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
-                sendMqtt(getString(R.string.ah_on));
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
+                sendMqtt(fromApp.equals("app") ? getString(R.string.ah_on) : "on");
             }
         } else if (command.toLowerCase().equals("off")) {
-            if (!sendToBt(Hlpr.relayCh2Close)) return;
+            if (!sendToBt(Hlpr.relayCh2Close))
+                return;
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
-                if (!sendToBt(Hlpr.relayCh2Open)) return;
-                sendMqtt(getString(R.string.ah_off));
+                if (!sendToBt(Hlpr.relayCh2Open))
+                    return;
+                sendMqtt(fromApp.equals("app") ? getString(R.string.ah_off) : "off");
             }
         } else if (command.toLowerCase().equals("anlernen1")) {
             try {
-                if (!sendToBt(Hlpr.relayCh2Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close))
+                    return;
 
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
 
             } catch (InterruptedException e) {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
-                if (!sendToBt(Hlpr.relayCh2Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open))
+                    return;
                 sendMqtt(getString(R.string.remote_lern1_sent));
             }
         } else if (command.toLowerCase().equals("anlernen2")) {
             try {
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
-                if (!sendToBt(Hlpr.relayCh2Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
+                if (!sendToBt(Hlpr.relayCh2Close))
+                    return;
                 Thread.sleep(3500);
 
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
-                if (!sendToBt(Hlpr.relayCh2Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
+                if (!sendToBt(Hlpr.relayCh2Open))
+                    return;
                 Thread.sleep(1000);
 
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh1Close))
+                    return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh1Open))
+                    return;
                 Thread.sleep(1000);
 
             } catch (InterruptedException e) {
@@ -405,7 +458,7 @@ public class MqttRecieverService extends Service implements MqttCallbackExtended
      */
     private void sendMqtt(String text) {
         try {
-            mqttClient.publish(topic_tx,text.getBytes(),0,false);
+            mqttClient.publish(topic_tx, text.getBytes(), 0, false);
         } catch (MqttException e) {
             e.printStackTrace();
         }

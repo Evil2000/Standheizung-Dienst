@@ -200,6 +200,13 @@ public class SmsReceiverService extends Service {
             return;
         }
 
+        String fromApp;
+        try {
+            fromApp = messages.getMessageBody().split(" ")[2];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            fromApp = "";
+        }
+
         // Send the right open/close commands to btDevice if on/off/anlernenX is received.
         if (command.toLowerCase().equals("on")) {
             if (!sendToBt(Hlpr.relayCh1Close)) return;
@@ -209,7 +216,10 @@ public class SmsReceiverService extends Service {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
                 if (!sendToBt(Hlpr.relayCh1Open)) return;
-                sendSms(getString(R.string.ah_on));
+                if (fromApp.equals("app"))
+                    sendSms("AH on");
+                else
+                    sendSms(getString(R.string.ah_on));
             }
         } else if (command.toLowerCase().equals("off")) {
             if (!sendToBt(Hlpr.relayCh2Close)) return;
@@ -219,7 +229,10 @@ public class SmsReceiverService extends Service {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
                 if (!sendToBt(Hlpr.relayCh2Open)) return;
-                sendSms(getString(R.string.ah_off));
+                if (fromApp.equals("app"))
+                    sendSms("AH off");
+                else
+                    sendSms(getString(R.string.ah_off));
             }
         } else if (command.toLowerCase().equals("anlernen1")) {
             try {
