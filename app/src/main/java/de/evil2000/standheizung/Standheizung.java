@@ -42,11 +42,11 @@ public class Standheizung extends Activity {
 
         simCardPresent = (telMgr.getSimState() == TelephonyManager.SIM_STATE_ABSENT || Build.DEVICE.equals("generic_x86_64"));
         // TODO: Remove Build.DEVICE check.
-        if (settings.getBoolean("useMqttTransport",!simCardPresent)) {
+        /*if (settings.getBoolean("useMqttTransport",!simCardPresent)) {
             startService(new Intent(this, MqttRecieverService.class));
         } else {
             startService(new Intent(this, SmsReceiverService.class));
-        }
+        }*/
     }
 
     @Override
@@ -161,7 +161,7 @@ public class Standheizung extends Activity {
                                 .holo_orange_light));
                         return;
                     }
-                    startService(MqttRecieverService);
+                    //startService(MqttRecieverService);
                 } else {
                     if (settings.getString("smsAuthSender", "").isEmpty()) {
                         // TODO: Display error message
@@ -169,7 +169,7 @@ public class Standheizung extends Activity {
                                 .holo_orange_light));
                         return;
                     }
-                    startService(SmsReceiverService);
+                    //startService(SmsReceiverService);
                 }
                 Standheizung.this.finish();
             }

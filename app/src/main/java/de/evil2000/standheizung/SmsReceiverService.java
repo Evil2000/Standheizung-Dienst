@@ -209,19 +209,6 @@ public class SmsReceiverService extends Service {
 
         // Send the right open/close commands to btDevice if on/off/anlernenX is received.
         if (command.toLowerCase().equals("on")) {
-            if (!sendToBt(Hlpr.relayCh1Close)) return;
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
-            } finally {
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
-                if (fromApp.equals("app"))
-                    sendSms("AH on");
-                else
-                    sendSms(getString(R.string.ah_on));
-            }
-        } else if (command.toLowerCase().equals("off")) {
             if (!sendToBt(Hlpr.relayCh2Close)) return;
             try {
                 Thread.sleep(3000);
@@ -230,55 +217,68 @@ public class SmsReceiverService extends Service {
             } finally {
                 if (!sendToBt(Hlpr.relayCh2Open)) return;
                 if (fromApp.equals("app"))
+                    sendSms("AH on");
+                else
+                    sendSms(getString(R.string.ah_on));
+            }
+        } else if (command.toLowerCase().equals("off")) {
+            if (!sendToBt(Hlpr.relayCh3Close)) return;
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
+            } finally {
+                if (!sendToBt(Hlpr.relayCh3Open)) return;
+                if (fromApp.equals("app"))
                     sendSms("AH off");
                 else
                     sendSms(getString(R.string.ah_off));
             }
         } else if (command.toLowerCase().equals("anlernen1")) {
             try {
-                if (!sendToBt(Hlpr.relayCh2Close)) return;
+                if (!sendToBt(Hlpr.relayCh3Close)) return;
 
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(2000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
 
             } catch (InterruptedException e) {
                 Log.w(Hlpr.__FUNC__(getClass()), "Thread.sleep() was interrupted.");
             } finally {
-                if (!sendToBt(Hlpr.relayCh2Open)) return;
+                if (!sendToBt(Hlpr.relayCh3Open)) return;
                 sendSms(getString(R.string.remote_lern1_sent));
             }
         } else if (command.toLowerCase().equals("anlernen2")) {
             try {
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
                 if (!sendToBt(Hlpr.relayCh2Close)) return;
+                if (!sendToBt(Hlpr.relayCh3Close)) return;
                 Thread.sleep(3500);
 
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
                 if (!sendToBt(Hlpr.relayCh2Open)) return;
+                if (!sendToBt(Hlpr.relayCh3Open)) return;
                 Thread.sleep(1000);
 
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Close)) return;
+                if (!sendToBt(Hlpr.relayCh2Close)) return;
                 Thread.sleep(1000);
-                if (!sendToBt(Hlpr.relayCh1Open)) return;
+                if (!sendToBt(Hlpr.relayCh2Open)) return;
                 Thread.sleep(1000);
 
             } catch (InterruptedException e) {

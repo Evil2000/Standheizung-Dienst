@@ -34,11 +34,11 @@ public class Hlpr {
     public static final byte[] relayCh2Interlock    = "B2\r\n".getBytes();
     public static final byte[] relayCh2Open         = "B3\r\n".getBytes();
     public static final byte[] relayCh2Close        = "B4\r\n".getBytes();
-    public static final byte[] relayCh3Momentary    = "C1\r\n".getBytes();
-    public static final byte[] relayCh3SelfLock     = "C2\r\n".getBytes();
-    public static final byte[] relayCh3Interlock    = "C3\r\n".getBytes();
-    public static final byte[] relayCh3Open         = "C4\r\n".getBytes();
-    public static final byte[] relayCh3Close        = "C0\r\n".getBytes();
+    public static final byte[] relayCh3Momentary    = "C0\r\n".getBytes();
+    public static final byte[] relayCh3SelfLock     = "C1\r\n".getBytes();
+    public static final byte[] relayCh3Interlock    = "C2\r\n".getBytes();
+    public static final byte[] relayCh3Open         = "C3\r\n".getBytes();
+    public static final byte[] relayCh3Close        = "C4\r\n".getBytes();
     public static final byte[] relayCh4Momentary    = "D0\r\n".getBytes();
     public static final byte[] relayCh4SelfLock     = "D1\r\n".getBytes();
     public static final byte[] relayCh4Interlock    = "D2\r\n".getBytes();
